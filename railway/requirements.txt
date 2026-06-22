@@ -1,0 +1,9 @@
+flask==3.1.0
+flask-cors==5.0.0
+python-dotenv==1.0.1
+openai==1.35.0
+docling==2.7.0
+supabase==2.5.0
+pinecone-client==3.2.2
+qdrant-client==1.9.1
+gunicorn==22.0.0
