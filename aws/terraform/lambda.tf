@@ -21,7 +21,6 @@ resource "aws_lambda_function" "kickstarter" {
       ECS_CONTAINER_NAME  = "docling-worker"
       SUBNETS             = join(",", var.subnet_ids)
       SECURITY_GROUPS     = join(",", var.security_group_ids)
-      AWS_REGION          = var.aws_region
     }
   }
 }
