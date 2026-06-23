@@ -67,7 +67,9 @@ export class IngestionStack extends cdk.Stack {
     taskRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
-        resources: ["*"],
+        resources: [
+          `arn:aws:bedrock:${this.region}::foundation-model/${process.env.BEDROCK_MODEL_ID ?? "amazon.titan-embed-text-v2:0"}`
+        ],
       })
     );
 
