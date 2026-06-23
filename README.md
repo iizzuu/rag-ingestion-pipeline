@@ -137,7 +137,7 @@ Every chunk written to the vector store carries these fields in `metadata`:
 | Hierarchical chunking | Docling HybridChunker |
 | Embeddings (Railway) | OpenAI text-embedding-3-small |
 | Embeddings (AWS) | Bedrock Titan Embed v2 |
-| Default vector store | Supabase pgvector |
+| Default vector store | Supabase pgvector (`sql/schema-railway.sql` for Railway/OpenAI 1536-dim, `sql/schema-aws.sql` for AWS/Bedrock 1024-dim) |
 | IaC | Terraform ≥ 1.7 + AWS CDK v2 |
 | Railway runtime | Python 3.11, Flask, Gunicorn |
 | AWS runtime | ECS Fargate (Python), Lambda (Node.js 20) |
