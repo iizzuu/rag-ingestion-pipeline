@@ -1,4 +1,6 @@
-# Document Ingestion Pipeline
+# RAG Ingestion Pipeline
+
+> **GitHub:** [github.com/iizzuu/rag-ingestion-pipeline](https://github.com/iizzuu/rag-ingestion-pipeline)
 
 A production-grade document ingestion pipeline that parses, hierarchically chunks, embeds, and stores documents in any vector store. Built to be forked and dropped into your stack.
 
