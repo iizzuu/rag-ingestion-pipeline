@@ -39,7 +39,7 @@ def _init_services():
     if _store is None:
         _store = get_store()
     if _openai_client is None:
-        _openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "placeholder"))
+        _openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     if _converter is None:
         _converter = DocumentConverter()
 

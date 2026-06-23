@@ -1,4 +1,5 @@
 import io
+import os
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -7,9 +8,14 @@ from unittest.mock import patch, MagicMock
 def client():
     with patch("server.get_store", return_value=MagicMock()), \
          patch("server.OpenAI", return_value=MagicMock()), \
-         patch("server.DocumentConverter", return_value=MagicMock()):
+         patch("server.DocumentConverter", return_value=MagicMock()), \
+         patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
         import server
         server.app.config["TESTING"] = True
+        # Reset global state before test
+        server._store = None
+        server._openai_client = None
+        server._converter = None
         with server.app.test_client() as c:
             yield c
 
