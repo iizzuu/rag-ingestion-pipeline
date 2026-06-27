@@ -13,3 +13,7 @@ output "ecr_repo_url" {
 output "ecs_cluster_arn" {
   value = aws_ecs_cluster.main.arn
 }
+
+output "opensearch_endpoint" {
+  value = aws_opensearchserverless_collection.vectors.collection_endpoint
+}

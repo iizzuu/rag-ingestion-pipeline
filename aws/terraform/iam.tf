@@ -30,6 +30,11 @@ resource "aws_iam_role_policy" "kickstarter" {
       },
       {
         Effect   = "Allow"
+        Action   = ["dynamodb:PutItem"]
+        Resource = aws_dynamodb_table.documents.arn
+      },
+      {
+        Effect   = "Allow"
         Action   = ["iam:PassRole"]
         Resource = aws_iam_role.ecs_task.arn
       },
@@ -37,6 +42,11 @@ resource "aws_iam_role_policy" "kickstarter" {
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords", "xray:GetSamplingRules", "xray:GetSamplingTargets"]
+        Resource = "*"
       }
     ]
   })
@@ -68,9 +78,22 @@ resource "aws_iam_role_policy" "ecs_task" {
         Resource = "${aws_s3_bucket.raw.arn}/upload/raw/*"
       },
       {
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel"]
+        Resource = [
+          "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}",
+          "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_fallback_model_id}",
+        ]
+      },
+      {
         Effect   = "Allow"
-        Action   = ["bedrock:InvokeModel"]
-        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
+        Action   = ["aoss:APIAccessAll"]
+        Resource = aws_opensearchserverless_collection.vectors.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.documents.arn
       },
       {
         Effect   = "Allow"
@@ -80,6 +103,11 @@ resource "aws_iam_role_policy" "ecs_task" {
       {
         Effect   = "Allow"
         Action   = ["ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["xray:PutTraceSegments", "xray:PutTelemetryRecords", "xray:GetSamplingRules", "xray:GetSamplingTargets"]
         Resource = "*"
       }
     ]

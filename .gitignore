@@ -22,8 +22,16 @@ cdk.out/
 *.tfstate
 *.tfstate.backup
 *.tfplan
+*.tfvars
 .terraform.lock.hcl
 
 # OS
 .DS_Store
 LINKEDIN.md
+
+# VSCode workspace
+*.code-workspace
+
+# Claude Code
+.superpowers/
+.claude/

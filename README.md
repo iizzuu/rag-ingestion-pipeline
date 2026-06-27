@@ -1,26 +1,24 @@
-# RAG Ingestion Pipeline
+# Document Ingestion Pipeline
 
-> **GitHub:** [github.com/iizzuu/rag-ingestion-pipeline](https://github.com/iizzuu/rag-ingestion-pipeline)
+**GitHub:** [github.com/iizzuu/rag-ingestion-pipeline](https://github.com/iizzuu/rag-ingestion-pipeline)
 
-A production-grade document ingestion pipeline that parses, hierarchically chunks, embeds, and stores documents in any vector store. Built to be forked and dropped into your stack.
+This is a production-ready document ingestion pipeline that takes raw files, parses them, breaks them into structured chunks, generates vector embeddings, and stores everything ready for retrieval. You can deploy it on Railway for a simple cloud setup or on AWS for a fully serverless, event-driven architecture.
+
+The core flow is the same regardless of where you deploy it:
 
 ```
-Upload → Parse (Docling) → Chunk (HybridChunker) → Embed → Store
+Upload a document → Parse with Docling → Chunk by structure → Embed → Store
 ```
-
-Swap your vector store with one environment variable. Nothing else changes.
-
----
 
 ## How it works
 
-### 1. Parse
+### Parsing
 
-Documents are parsed with [Docling](https://github.com/DS4SD/docling), which understands PDF structure, reading order, tables, and heading hierarchy. Output is a structured document object — not raw text.
+Documents are parsed using [Docling](https://github.com/DS4SD/docling), which understands the actual structure of a PDF or DOCX file. It reads heading hierarchy, table layouts, and reading order rather than just dumping raw text. The output is a structured document object that the chunker can work with meaningfully.
 
-### 2. Chunk (hierarchically)
+### Chunking
 
-The Docling `HybridChunker` splits documents by structure, not by token count. Each chunk carries its full heading ancestry:
+The chunker uses Docling's HybridChunker to split documents by their natural structure rather than cutting at arbitrary token limits. Every chunk produced carries its full heading ancestry so you always know where in the document it came from.
 
 ```json
 {
@@ -37,32 +35,32 @@ The Docling `HybridChunker` splits documents by structure, not by token count. E
 }
 ```
 
-A chunk from `Eligibility Criteria` knows it belongs to `Claims Procedure`. It is not an orphan fragment.
+A chunk from the Eligibility Criteria section knows it belongs to the Claims Procedure section. When you retrieve it later, you have the context to expand into surrounding chunks from the same section.
 
-### 3. Embed
+### Embedding
 
-Chunks are embedded into dense vectors:
-- **Railway**: OpenAI `text-embedding-3-small` (1536 dims)
-- **AWS**: Bedrock Titan Embed v2 (1024 dims, concurrent)
+Both deployments generate dense vector embeddings, but use different providers suited to their environment.
 
-### 4. Store
+The Railway deployment uses OpenAI text-embedding-3-small at 1536 dimensions. The AWS deployment uses Amazon Bedrock Titan Embed v2 at 1024 dimensions, with Cohere Embed as an automatic fallback if Titan is throttled.
 
-Vectors are upserted into your vector store. Switch stores by changing one env var:
+### Storage
 
-```bash
-VECTOR_STORE=supabase   # default — pgvector
-VECTOR_STORE=pinecone
-VECTOR_STORE=qdrant
-```
+Raw files are uploaded to S3 before processing begins so the original document is always preserved regardless of what happens during conversion. The chunks and embeddings go into the vector store.
 
----
+## Deployments
 
-## Retrieval pattern
+| Target | Stack | Status |
+|---|---|---|
+| [Railway](./railway/) | Flask, OpenAI, Supabase, S3 | Ready |
+| [AWS](./aws/) | ECS Fargate, Bedrock, OpenSearch Serverless, Terraform | Ready |
+| [Azure](./azure/) | Blob Storage, Service Bus, ACI | Coming soon |
+| [GCP](./gcp/) | GCS, Pub/Sub, Cloud Run | Coming soon |
 
-After ingestion, query your vector store for the top-k chunks closest to your query embedding. Then expand context by fetching sibling chunks — every chunk under the same heading:
+## Querying after ingestion
+
+Once documents are ingested, you query the vector store for the chunks most semantically similar to your question. Because every chunk carries its heading path, you can then expand context by fetching all sibling chunks from the same section.
 
 ```sql
--- Supabase: fetch all chunks in the same section
 SELECT content, metadata
 FROM document_embeddings
 WHERE metadata->>'document_id' = 'doc_abc'
@@ -70,76 +68,33 @@ WHERE metadata->>'document_id' = 'doc_abc'
 ORDER BY (metadata->>'sequence')::int;
 ```
 
-Concatenate the sibling chunks in sequence order. Pass the assembled context to your LLM:
+Concatenate the siblings in order and pass them to your language model. The model gets the full section rather than a fragment.
 
-```python
-context = "\n\n".join(chunk["content"] for chunk in siblings)
-
-response = openai.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {"role": "system", "content": "Answer using only the context provided."},
-        {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
-    ],
-)
-```
-
-The model receives the complete section, not a fragment.
-
----
-
-## Deployments
-
-| Target | Stack | Status |
-|---|---|---|
-| [Railway](./railway/) | Flask + OpenAI + any vector store | Ready |
-| [AWS](./aws/) | ECS Fargate + Bedrock + Terraform + CDK | Ready |
-| [Azure](./azure/) | Blob Storage + Service Bus + ACI | Coming soon |
-| [GCP](./gcp/) | GCS + Pub/Sub + Cloud Run | Coming soon |
-
----
-
-## Swap your vector store
-
-Every deployment uses the same pattern. Set `VECTOR_STORE` in your environment:
-
-| Value | Store | Extra env vars needed |
-|---|---|---|
-| `supabase` | Supabase pgvector (default) | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` |
-| `pinecone` | Pinecone | `PINECONE_API_KEY`, `PINECONE_INDEX_NAME` |
-| `qdrant` | Qdrant | `QDRANT_URL`, `QDRANT_COLLECTION`, `QDRANT_API_KEY` |
-
-The chunker, parser, and embedding logic do not change.
-
----
-
-## Chunk schema reference
-
-Every chunk written to the vector store carries these fields in `metadata`:
+## Chunk fields reference
 
 | Field | Type | Description |
 |---|---|---|
-| `chunk_id` | string | Unique ID: `{document_id}#{sequence}` |
-| `document_id` | string | Groups all chunks for a document |
-| `chunk_type` | string | `section_text` or `unstructured` |
-| `heading_path` | string[] | Full heading ancestry from root |
-| `parent_heading` | string \| null | Immediate parent section |
-| `sequence` | integer | Position in document |
-| `page_start` | integer \| null | Start page |
-| `page_end` | integer \| null | End page |
-| `estimated_token_count` | integer | Approximate word count |
+| chunk_id | string | Unique ID in the format document_id followed by sequence number |
+| document_id | string | Groups all chunks belonging to one document |
+| chunk_type | string | Either section_text or unstructured |
+| heading_path | string array | Full heading ancestry from the document root |
+| parent_heading | string or null | The immediate parent section |
+| sequence | integer | Position of this chunk within the document |
+| page_start | integer or null | Page where the chunk begins |
+| page_end | integer or null | Page where the chunk ends |
+| estimated_token_count | integer | Approximate word count |
 
----
-
-## Technologies
+## Technology stack
 
 | Component | Technology |
 |---|---|
-| PDF/DOCX parsing | Docling (DS4SD) |
-| Hierarchical chunking | Docling HybridChunker |
-| Embeddings (Railway) | OpenAI text-embedding-3-small |
-| Embeddings (AWS) | Bedrock Titan Embed v2 |
-| Default vector store | Supabase pgvector (`sql/schema-railway.sql` for Railway/OpenAI 1536-dim, `sql/schema-aws.sql` for AWS/Bedrock 1024-dim) |
-| IaC | Terraform ≥ 1.7 + AWS CDK v2 |
+| Document parsing | Docling by DS4SD |
+| Chunking | Docling HybridChunker |
+| Embeddings on Railway | OpenAI text-embedding-3-small |
+| Embeddings on AWS | Bedrock Titan Embed v2 with Cohere fallback |
+| Vector store on Railway | Supabase pgvector |
+| Vector store on AWS | OpenSearch Serverless |
+| Raw file storage | Amazon S3 |
+| AWS infrastructure | Terraform and AWS CDK v2 |
 | Railway runtime | Python 3.11, Flask, Gunicorn |
-| AWS runtime | ECS Fargate (Python), Lambda (Node.js 20) |
+| AWS runtime | ECS Fargate (Python 3.11), Lambda (Node.js 20) |
