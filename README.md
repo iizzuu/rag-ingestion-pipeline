@@ -10,6 +10,8 @@ The core flow is the same regardless of where you deploy it:
 Upload a document → Parse with Docling → Chunk by structure → Embed → Store
 ```
 
+![Architecture](./assets/arch.png)
+
 ## How it works
 
 ### Parsing
