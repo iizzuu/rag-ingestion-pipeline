@@ -4,6 +4,8 @@ This is the fully serverless, event-driven version of the ingestion pipeline. Ev
 
 ## How it works
 
+![Architecture](../assets/arch.png)
+
 When you upload a file to S3, an event notification fires to SQS. A Lambda function picks up the message and launches a Fargate task with the S3 location passed as environment variables. The Fargate task downloads the file, runs it through Docling, chunks it, generates embeddings via Bedrock, and indexes everything into OpenSearch Serverless through a VPC endpoint. No NAT Gateway required.
 
 ```
