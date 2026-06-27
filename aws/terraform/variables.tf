@@ -9,46 +9,31 @@ variable "project" {
 }
 
 variable "vpc_id" {
-  description = "VPC ID for ECS tasks"
+  description = "VPC ID for ECS tasks and OpenSearch VPC endpoint"
 }
 
 variable "subnet_ids" {
-  description = "Subnet IDs for ECS tasks (comma-separated list)"
+  description = "Subnet IDs for ECS tasks and OpenSearch VPC endpoint"
   type        = list(string)
 }
 
 variable "security_group_ids" {
-  description = "Security group IDs for ECS tasks"
+  description = "Security group IDs for ECS tasks and OpenSearch VPC endpoint"
   type        = list(string)
 }
 
-variable "vector_store" {
-  description = "Vector store to use: supabase | pinecone | qdrant"
-  default     = "supabase"
-  validation {
-    condition     = contains(["supabase", "pinecone", "qdrant"], var.vector_store)
-    error_message = "vector_store must be supabase, pinecone, or qdrant."
-  }
+variable "route_table_ids" {
+  description = "Route table IDs for the private subnets (needed for S3 Gateway endpoint)"
+  type        = list(string)
 }
 
-variable "supabase_url" { default = "" }
-variable "supabase_service_key" {
-  default   = ""
-  sensitive = true
+variable "opensearch_index" {
+  description = "OpenSearch index name for document chunks"
+  default     = "document-chunks"
 }
-variable "pinecone_api_key" {
-  default   = ""
-  sensitive = true
-}
-variable "pinecone_index_name" { default = "" }
-variable "qdrant_url"          { default = "" }
-variable "qdrant_api_key" {
-  default   = ""
-  sensitive = true
-}
-variable "qdrant_collection" { default = "" }
 
-variable "bedrock_model_id"     { default = "amazon.titan-embed-text-v2:0" }
+variable "bedrock_model_id"          { default = "amazon.titan-embed-text-v2:0" }
+variable "bedrock_fallback_model_id" { default = "cohere.embed-english-v3" }
 variable "embedding_dimensions" { default = "1024" }
 variable "max_tokens"           { default = "512" }
 variable "max_workers"          { default = "10" }

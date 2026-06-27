@@ -14,6 +14,10 @@ resource "aws_lambda_function" "kickstarter" {
   runtime          = "nodejs20.x"
   timeout          = 30
 
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       ECS_CLUSTER         = aws_ecs_cluster.main.name
@@ -21,6 +25,7 @@ resource "aws_lambda_function" "kickstarter" {
       ECS_CONTAINER_NAME  = "docling-worker"
       SUBNETS             = join(",", var.subnet_ids)
       SECURITY_GROUPS     = join(",", var.security_group_ids)
+      DYNAMODB_TABLE      = aws_dynamodb_table.documents.name
     }
   }
 }

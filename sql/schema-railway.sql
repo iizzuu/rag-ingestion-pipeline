@@ -1,5 +1,6 @@
 -- Document Ingestion Pipeline — Supabase Schema
 -- Run in the Supabase SQL Editor before using the pipeline.
+-- dialect: postgresql
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
